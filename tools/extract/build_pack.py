@@ -42,6 +42,11 @@ def compile_file(path):
           if v.get('bgId'): out.append(['B2',v['bgId']]); ssbg.add(v.get('id'))
         elif v.get('delete') and v.get('id') in ssbg: out.append(['B2',None])
         elif v.get('bgId'): out.append(['B',v['bgId']])
+      elif name=='monitorSecondScreen':
+        if v.get('delete') or v.get('close'): out.append(['MS',None])
+        elif v.get('open'):
+          pp=v.get('pos') or {}
+          out.append(['MS',v.get('type') or 'small',pp.get('x',0),pp.get('y',0)])
       elif name=='halfSecondScreen':
         if v.get('delete'): out.append(['HS',0])
         elif 'isRight' in v or v.get('pos'): out.append(['HS',1 if v.get('isRight',True) else -1])

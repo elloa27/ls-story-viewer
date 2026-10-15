@@ -75,6 +75,8 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
 .ss2{position:absolute;top:0;bottom:0;width:50%;background-size:cover;background-position:center;border-left:2px solid rgba(201,164,92,.7);box-shadow:-6px 0 18px rgba(0,0,0,.6);display:none}
 .ss2.l{border-left:0;border-right:2px solid rgba(201,164,92,.7);box-shadow:6px 0 18px rgba(0,0,0,.6)}
 .ss2.on{display:block}
+.mon{position:absolute;display:none;background:#0b0d16 center/cover;border:2px solid rgba(201,164,92,.75);box-shadow:0 4px 18px rgba(0,0,0,.6);z-index:0}
+.mon.on{display:block}
 .chars{position:absolute;inset:0;pointer-events:none;z-index:0}
 .chr{position:absolute;transition:opacity .35s ease,left .4s ease;opacity:0}
 .chr.on{opacity:1}
@@ -174,7 +176,7 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
 <!-- READER -->
 <section class="view" id="reader" hidden style="padding:0">
   <div class="stage" id="stage">
-    <div class="bgl" id="bgl"></div><div class="bgi" id="bgi"></div><div class="ss2" id="ss2"></div><div class="chars" id="chars"></div>
+    <div class="bgl" id="bgl"></div><div class="bgi" id="bgi"></div><div class="ss2" id="ss2"></div><div class="mon" id="mon"></div><div class="chars" id="chars"></div>
     <div class="bgtag" id="bgtag"></div>
     <div class="still" id="still" hidden></div>
     <div class="rtop">
@@ -243,9 +245,9 @@ function speakerName(s){
 // ---------- flatten an episode into display steps ----------
 async function flatten(key){
   const steps=[]; let bg=null, still=null; let guard=0;
-  let chars=new Map(), ch=[], cam='MC', bgm=null, se=[], talk=null, hs=0, bg2=null;
+  let chars=new Map(), ch=[], cam='MC', bgm=null, se=[], talk=null, hs=0, bg2=null, mon=null;
   const snap=()=>{ch=[...chars.entries()].map(([id,o])=>Object.assign({id},o))};
-  const mk=(o)=>{o.ch=ch;o.cam=cam;o.bgm=bgm;o.se=se;se=[];o.talk=talk;talk=null;o.hs=hs;o.bg2=bg2;return o};
+  const mk=(o)=>{o.ch=ch;o.cam=cam;o.bgm=bgm;o.se=se;se=[];o.talk=talk;talk=null;o.hs=hs;o.bg2=bg2;o.mon=mon;return o};
   async function runGroup(ep,g,depth){
     const cmds=ep.groups[g]; if(!cmds||depth>8)return null;
     for(const c of cmds){
@@ -257,6 +259,7 @@ async function flatten(key){
         case'V':steps.push(mk({t:'V',kind:c[1],bg,still}));break;
         case'C':{const o=Object.assign({c:null,p:'AOC',m:'m_000',e:'e_000',ss:0,pv:null},chars.get(c[1])||{});if(c[2]){o.c=c[2];o.pv=null}if(c[3])o.p=c[3];if(c[4])o.m=c[4];if(c[5])o.e=c[5];if(c[6]!=null)o.ss=c[6];if(c[7])o.pv=Object.assign({},o.pv||{},c[7]);chars.set(c[1],o);snap();break}
         case'HS':hs=c[1];if(!hs)bg2=null;break;
+        case'MS':mon=c[1]?{t:c[1],x:c[2]||0,y:c[3]||0}:null;break;
         case'B2':bg2=c[1];break;
         case'L':talk=c[1];break;
         case'X':if(chars.delete(c[1]))snap();break;
@@ -413,8 +416,16 @@ const L2={app:null,live:new Map(),cache:new Map(),gen:0,talk:null,err:null,
       for(const o0 of st.ch||[]){if(!o0.c)continue;const c=charFor(o0.c);if(!CHS.has(String(c)))continue;const p=parsePos(o0.p);if(!p||(p.area!=='A'&&p.area!==area))continue;want.set(o0.id,{o:Object.assign({},o0,{c}),p})}}
     for(const [id,e] of this.live)if(!want.has(id)||e.c!==want.get(id).o.c){e.out=true}
     const W=this.app.screen.width,H=this.app.screen.height;
+    // small monitor window (comm screen) for second-screen characters
+    const monOn=!hsOn&&!!st.mon&&st.still==null, mEl=$('mon');let MR=null;
+    if(monOn){const big=st.mon.t==='large';const mw=big?W*0.86:Math.min(W*0.46,H*0.32),mh=big?H*0.5:mw*0.82;
+      let cx=W/2+(big?0:(st.mon.x/1920)*W*(W<H?1.6:1));cx=Math.max(mw/2+8,Math.min(W-mw/2-8,cx));
+      MR={x:cx-mw/2,y:Math.max(H*0.09,H*0.12-(st.mon.y/1080)*H*0.3),w:mw,h:mh};
+      Object.assign(mEl.style,{left:MR.x+'px',top:MR.y+'px',width:MR.w+'px',height:MR.h+'px'});
+      const u=bgUrl(st.bg2);mEl.style.backgroundImage=u?`url(${u})`:'';}
+    mEl.classList.toggle('on',monOn);
     const regionOf=o=>{if(!hsOn)return[0,W];const ssRight=st.hs!==-1;const half=W/2;return (o.ss?ssRight:!ssRight)?[half,half]:[0,half]};
-    const cnt={};for(const {o} of want.values()){const r=regionOf(o)[0];cnt[r]=(cnt[r]||0)+1}
+    const cnt={};for(const {o} of want.values()){if(MR&&o.ss)continue;const r=regionOf(o)[0];cnt[r]=(cnt[r]||0)+1}
     const bx=$('box'),sr=$('stage').getBoundingClientRect(),br=bx.getBoundingClientRect();
     const boxTop=(br.height&&!$('stage').classList.contains('hidebox'))?Math.max(H*0.45,br.top-sr.top):H;   // area above the dialog box
     const sOf=(rw,n)=>Math.min(boxTop*0.97/(8000*0.48),rw*1.3/(520/0.2))*(n>=3?0.74:n===2?0.86:1);
@@ -427,12 +438,16 @@ const L2={app:null,live:new Map(),cache:new Map(),gen:0,talk:null,err:null,
           if(m.parent)m.parent.removeChild(m);
           m.alpha=0;this.app.stage.addChild(m);e={m,c:o.c,out:false,x:null};this.live.set(id,e)}
       }
-      const m=e.m;m.zIndex=p.f+(o.ss&&hsOn?10:0);e.out=false;
-      const [rx,rw]=regionOf(o);const s=sOf(rw,cnt[rx]);
+      const m=e.m;m.zIndex=p.f+(o.ss&&(hsOn||MR)?10:0);e.out=false;
+      const OW=m.internalModel.originalWidth,OH=m.internalModel.originalHeight;
+      const inMon=!!(MR&&o.ss);let s;
+      if(inMon){s=sOf(W,1)*MR.h*1.0/(0.8*boxTop);m.scale.set(s);m.__pv=o.pv;
+        clip(m,MR.x+2,MR.y+2,MR.w-4,MR.h-4);
+        e.tx=MR.x+MR.w/2-OW*s/2;e.ty=MR.y+MR.h*1.32-OH*0.52*s;if(e.inMon!==true){e.x=e.tx}e.inMon=true}
+      else{const [rx,rw]=regionOf(o);s=sOf(rw,cnt[rx]);
       m.scale.set(s);m.__pv=o.pv;
-      if(hsOn){if(!m.__mask)m.__mask=new PIXI.Graphics();m.__mask.clear().beginFill(0xffffff).drawRect(rx,0,rw,H).endFill();m.mask=m.__mask}
-      else if(m.mask){m.mask=null;m.__mask&&m.__mask.clear()}
-      const OW=m.internalModel.originalWidth,OH=m.internalModel.originalHeight;e.tx=rx+p.x*rw-OW*s/2; e.ty=boxTop-OH*0.52*s;
+      if(hsOn)clip(m,rx,0,rw,H);else clip(m,null)
+      e.tx=rx+p.x*rw-OW*s/2; e.ty=boxTop-OH*0.52*s;if(e.inMon){e.x=e.tx}e.inMon=false}
       if(e.x==null){e.x=e.tx;m.position.set(e.tx,e.ty)}
       this.motion(m,o.m);
       if(e.exp!==o.e){e.exp=o.e;const em=m.internalModel.motionManager.expressionManager;if(em){if(em.definitions.find(d=>d.Name===o.e))em.setExpression(o.e);else em.resetExpression()}}
@@ -451,6 +466,10 @@ const L2={app:null,live:new Map(),cache:new Map(),gen:0,talk:null,err:null,
   },
   clear(){for(const e of this.live.values())e.out=true},
   pause(on){if(this.app){on?this.app.ticker.stop():this.app.ticker.start()}}};
+// clip a model to a screen rectangle (Cubism draws with its own stencil, so Graphics masks don't work; filterArea does)
+function clip(m,x,y,w,h){if(x==null){if(m.filters){m.filters=null;m.filterArea=null}return}
+  if(!m.filters)m.filters=[new PIXI.filters.AlphaFilter(1)];
+  if(!m.filterArea)m.filterArea=new PIXI.Rectangle();const r=m.filterArea;r.x=x;r.y=y;r.width=w;r.height=h}
 function charFor(c){
   c=+c;
   if(Math.floor(c/1000)===512){const v=c+'_'+(cfg.gender==='f'?'female':'male');if(CHS.has(v))return v;c=127001}   // hero bond outfits: separate male/female models
