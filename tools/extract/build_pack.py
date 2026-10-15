@@ -90,7 +90,7 @@ def compile_file(path):
         st=v.get('stop')
         if isinstance(st,dict) and st.get('filePath'): out.append(['Es',st['filePath'].split('/')[-1]])
       elif name in('knightmareCutScene','captionMovie','movie'):
-        out.append(['V',name])
+        out.append(['V',name,v.get('path') or v.get('fileName') or v.get('movieName')])
     groups[g]=out
   return {'start':first,'groups':groups,'lines':k}
 

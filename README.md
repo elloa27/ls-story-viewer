@@ -20,6 +20,7 @@
 | `tools/extract/` | Addressables 카탈로그 해석, 스토리 JSON 추출, 뷰어용 회차 데이터 생성(`build_pack.py`) |
 | `tools/live2d/` | Cubism for Unity 모델 → 웹 재생용(moc3 + webp + motion3/exp3/pose3) 변환 |
 | `tools/media/` | 배경/CG → webp 변환, 배경음악/효과음(CRI ACB/AWB, HCA) → ogg(opus) 변환 |
+| `tools/kmf/` | 나이트메어 전투 연출: 타임라인 해석(`parse_kmf.py`), 기체 일러스트 변환(`conv_kmf.py`), 뷰어 데이터 생성(`build_kmf.py`) |
 
 ## 전체 흐름
 
@@ -32,6 +33,7 @@
    - 이미지: `tools/media/conv_img.py <zip>` (→ `data/img/bg`, `data/img/still`)
    - Live2D: `tools/live2d/extract_part.py` (→ `data/l2d/<charId>/`)
    - 사운드: `tools/media/conv_snd.sh <Sound 폴더>` (→ `data/snd/bgm`, `data/snd/se`)
+   - 전투 연출: `knightmarestories-kmfstory_*` 번들 → `parse_kmf.py`, `kmf_<id>_l.bundle` → `conv_kmf.py`, 이어서 `build_kmf.py` (→ `data/kmf/`, `data/kmf/img/`)
      - HCA 키는 vgmstream의 `hca_keys.h`에 등록되어 있어 자동 적용됨
 5. **번역** — `translator/translator.py` (배치 모드 지원). 결과 `ko/*.json`을 `data/ko/`에 둠.
 6. **APK 빌드**
@@ -56,7 +58,7 @@
 | `['K', MC\|L\|R]` / `['HS', 1\|-1\|0]` | 카메라 위치 / 분할화면(통신창) |
 | `['A', bgm]` / `['E', se]` / `['Es', se]` | 배경음악 / 효과음 재생 / 정지 |
 | `['G', 그룹]` / `['H', 남, 여]` / `['R', 큐]` / `['M', 스토리, 큐]` | 분기 / 성별 분기 / 서브루틴 / 회상 |
-| `['V', 종류]` | 전투 연출·영상 (현재는 안내 문구만 표시) |
+| `['V', 종류, 경로]` | 전투 연출(`knightmareCutScene` → `data/kmf/<경로>.json` 재생)·영상(안내 문구만) |
 
 ## 버전 기록
 
@@ -65,9 +67,11 @@
 - v0.4.0 Live2D 캐릭터, 배경음악·효과음
 - v0.4.1 카메라 이동 후 캐릭터 누락 수정, 여성 주인공, 효과음 오타 보정
 - v0.4.2 분할화면(통신창), 장면별 파라미터(망토 등), 캐릭터 크기 조정
+- v0.4.3 나이트메어 전투 연출 423종 (기체 일러스트 + 카메라 컷·흔들림·섬광 + 효과음 + 한국어 자막)
 
 ## 남은 작업
 
-- 나이트메어 전투 연출(431종), 자막 영상(254종), 영상(13종)
+- 전투 연출 중 3D·이펙트·Live2D 컷인은 재현하지 않음(일러스트 근사), 일러스트가 없는 양산기·적기 39편은 배경만 표시
+- 자막 영상(254종), 영상(13종)
 - 빠진 캐릭터 9명(폰에 미다운로드), 주인공 인연 모델(512xxx, 게임 데이터에 없음 → 기본 모델 대체 중)
 - 배포용 구조: 에셋 없는 뷰어 APK + 사용자가 자기 데이터로 만드는 추출기

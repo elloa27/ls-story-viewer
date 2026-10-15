@@ -121,6 +121,25 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
 .log span{display:block;font-size:12px;color:var(--gold);margin-bottom:2px}
 .log p{margin:0;font-size:15px;line-height:1.6;white-space:pre-wrap}
 .log div.cur{background:rgba(196,58,79,.08)}
+.kmf{position:absolute;inset:0;z-index:6;background:#04050a;overflow:hidden;cursor:pointer}
+.kmf .kl{position:absolute;inset:-6%;background:repeating-linear-gradient(100deg,transparent 0 46px,rgba(255,255,255,.035) 46px 48px);animation:kmfl .5s linear infinite}
+@keyframes kmfl{to{transform:translateX(-96px)}}
+.kmf .kc{position:absolute;inset:0;will-change:transform}
+.kmf .ki{position:absolute;inset:0;background-size:cover;background-position:center;opacity:0;transition:opacity .25s;will-change:transform}
+.kmf .ki.on{opacity:1}
+@media (orientation:portrait){.kmf .ki{background-size:auto 46%;background-position:50% 42%;background-repeat:no-repeat}.kmf .ki.b{clip-path:polygon(60% 0,100% 0,100% 100%,40% 100%)}.kmf .ki.a2{clip-path:polygon(0 0,59.5% 0,39.5% 100%,0 100%)}}
+.kmf .ki.b{clip-path:polygon(58% 0,100% 0,100% 100%,42% 100%)}
+.kmf .ki.a2{clip-path:polygon(0 0,57.5% 0,41.5% 100%,0 100%)}
+.kmf .kv{position:absolute;inset:0;pointer-events:none;background:radial-gradient(ellipse at center,transparent 55%,rgba(0,0,0,.6))}
+.kmf .kf{position:absolute;inset:0;background:#fff;opacity:0;pointer-events:none}
+.kmf .kcap{position:absolute;left:12px;right:12px;bottom:calc(env(safe-area-inset-bottom) + 18px);background:rgba(6,8,14,.82);border-left:3px solid var(--gold);padding:10px 14px;border-radius:4px;opacity:0;transition:opacity .15s}
+.kmf .kcap.on{opacity:1}
+.kmf .kcap b{display:block;color:var(--gold);font-size:13px;margin-bottom:4px}
+.kmf .kcap p{margin:0;font-size:var(--fs);line-height:1.55;white-space:pre-line}
+.kmf .kcap i{display:block;font-style:normal;color:var(--dim);font-size:13px;margin-top:4px;white-space:pre-line}
+.kmf .ksk{position:absolute;top:calc(env(safe-area-inset-top) + 10px);right:10px;font-size:12px;color:#fff;background:rgba(0,0,0,.5);border:1px solid rgba(255,255,255,.25);border-radius:14px;padding:5px 12px}
+.kmf .kbar{position:absolute;left:0;bottom:0;height:3px;background:var(--gold);opacity:.7}
+.box .rp{display:inline-block;margin-top:10px;font-size:13px;color:var(--gold);border:1px solid rgba(201,164,92,.5);border-radius:14px;padding:4px 12px}
 .loading{position:absolute;inset:0;display:grid;place-items:center;color:var(--dim);z-index:8;background:#000}
 </style>
 </head>
@@ -161,6 +180,7 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
       <div class="field"><label>배경음악</label><div class="seg" id="bgmv"><button data-v="0">끔</button><button data-v="0.3">작게</button><button data-v="0.6">보통</button><button data-v="1">크게</button></div></div>
       <div class="field"><label>효과음</label><div class="seg" id="sev"><button data-v="0">끔</button><button data-v="0.3">작게</button><button data-v="0.6">보통</button><button data-v="1">크게</button></div></div>
       <div class="field"><label>캐릭터 표시</label><div class="seg" id="chon"><button data-v="1">켜기</button><button data-v="0">끄기</button></div></div>
+      <div class="field"><label>전투 연출 자동 재생<small>끄면 버튼을 눌렀을 때만 재생</small></label><div class="seg" id="kmfon"><button data-v="1">켜기</button><button data-v="0">끄기</button></div></div>
       <div class="field"><label>글자 크기</label><div class="seg" id="fsz"><button data-v="15">작게</button><button data-v="17">보통</button><button data-v="20">크게</button></div></div>
       <div class="field"><label>글자 속도</label><div class="seg" id="spd"><button data-v="0">즉시</button><button data-v="25">빠름</button><button data-v="45">보통</button></div></div>
       <div class="field"><label>자동 진행 간격</label><div class="seg" id="autoGap"><button data-v="800">짧게</button><button data-v="1500">보통</button><button data-v="2500">길게</button></div></div>
@@ -193,6 +213,7 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
       <div class="meta" id="meta"></div>
     </div>
     <div class="ctitle" id="ctitle" hidden></div>
+    <div class="kmf" id="kmf" hidden><div class="kl"></div><div class="kc" id="kc"><div class="ki" id="kiA"></div><div class="ki b" id="kiB"></div></div><div class="kv"></div><div class="kf" id="kf"></div><div class="kcap" id="kcap"><b id="kcs"></b><p id="kct"></p><i id="kco"></i></div><button class="ksk" id="ksk">건너뛰기 ›</button><div class="kbar" id="kbar"></div></div>
     <div class="endc" id="endc" hidden>
       <b>FIN</b>
       <button class="btn pri" id="nextEp">다음 화</button>
@@ -214,7 +235,7 @@ let BASE='data/';
 // ---------- storage ----------
 const S={get(k,d){try{const v=localStorage.getItem('ls.'+k);return v==null?d:JSON.parse(v)}catch(e){return d}},
          set(k,v){try{localStorage.setItem('ls.'+k,JSON.stringify(v))}catch(e){}}};
-const cfg=Object.assign({hero:'',gender:'m',lang:'ko',fs:17,spd:25,gap:1500,bgmv:0.6,sev:0.6,chon:1},S.get('cfg',{}));
+const cfg=Object.assign({hero:'',gender:'m',lang:'ko',fs:17,spd:25,gap:1500,bgmv:0.6,sev:0.6,chon:1,kmf:1},S.get('cfg',{}));
 const saveCfg=()=>S.set('cfg',cfg);
 let readSet=new Set(S.get('read',[]));
 const saveRead=()=>S.set('read',[...readSet]);
@@ -224,7 +245,7 @@ function load(path){return new Promise((res,rej)=>{const x=new XMLHttpRequest();
 const epCache=new Map(), koCache=new Map();
 const getEp=k=>epCache.has(k)?Promise.resolve(epCache.get(k)):load('data/ep/'+k+'.json').then(d=>(epCache.set(k,d),d));
 const getKo=k=>koCache.has(k)?Promise.resolve(koCache.get(k)):load('data/ko/'+k+'.json').catch(()=>null).then(d=>(koCache.set(k,d),d));
-let INDEX=[], FLAT=[], NAMES={}, KO_SET=new Set();
+let INDEX=[], FLAT=[], NAMES={}, KO_SET=new Set(), KMFSET=new Set();
 
 // ---------- text helpers ----------
 const heroName=()=>cfg.hero||(cfg.gender==='f'?'主人公':'主人公');
@@ -254,7 +275,7 @@ async function flatten(key){
         case'S':steps.push(mk({t:'S',spk:c[1],ja:c[2],k:c[3],v:c[4],src:ep.key,bg,still}));break;
         case'N':steps.push(mk({t:'N',ja:c[1],k:c[2],src:ep.key,bg,still}));break;
         case'T':steps.push(mk({t:'T',num:c[1],ja:c[2],k:c[3],src:ep.key,bg,still}));break;
-        case'V':steps.push(mk({t:'V',kind:c[1],bg,still}));break;
+        case'V':steps.push(mk({t:'V',kind:c[1],path:c[2]||null,bg,still}));break;
         case'C':{const o=Object.assign({c:null,p:'AOC',m:'m_000',e:'e_000',ss:0,pv:null},chars.get(c[1])||{});if(c[2]){o.c=c[2];o.pv=null}if(c[3])o.p=c[3];if(c[4])o.m=c[4];if(c[5])o.e=c[5];if(c[6]!=null)o.ss=c[6];if(c[7])o.pv=Object.assign({},o.pv||{},c[7]);chars.set(c[1],o);snap();break}
         case'HS':hs=c[1];if(!hs)bg2=null;break;
         case'B2':bg2=c[1];break;
@@ -334,7 +355,7 @@ function seg(id,key,num){const el=$(id);const sync=()=>el.querySelectorAll('butt
 function applyCfg(){document.documentElement.style.setProperty('--fs',cfg.fs+'px');if(window.BGM)BGM.vol()}
 $('toSettings').onclick=()=>{$('heroName').value=cfg.hero;show('settings')};
 $('heroName').oninput=e=>{cfg.hero=e.target.value.trim();saveCfg()};
-seg('gender','gender');seg('lang','lang');seg('fsz','fs',true);seg('spd','spd',true);seg('autoGap','gap',true);seg('bgmv','bgmv',true);seg('sev','sev',true);seg('chon','chon',true);
+seg('gender','gender');seg('lang','lang');seg('fsz','fs',true);seg('spd','spd',true);seg('autoGap','gap',true);seg('bgmv','bgmv',true);seg('sev','sev',true);seg('chon','chon',true);seg('kmfon','kmf',true);
 $('resetRead').onclick=()=>{const b=$('resetRead');if(b.dataset.c!=='1'){b.dataset.c='1';b.textContent='한 번 더 누르면 초기화';return}readSet=new Set();saveRead();S.set('last',null);b.dataset.c='';b.textContent='초기화됨'};
 
 // ---------- reader ----------
@@ -458,6 +479,65 @@ function charFor(c){
   return c}
 function toast(msg){let t=$('toast');if(!t){t=document.createElement('div');t.id='toast';t.style.cssText='position:fixed;left:12px;right:12px;top:calc(env(safe-area-inset-top) + 60px);z-index:99;background:#5a1d1d;color:#fff;font-size:12px;padding:8px 10px;border-radius:6px;opacity:.92;pointer-events:none';document.body.appendChild(t)}t.textContent=msg;t.hidden=false;clearTimeout(t._h);t._h=setTimeout(()=>t.hidden=true,6000)}
 function setChars(st){L2.set(st).catch(e=>toast('캐릭터 표시 오류: '+(e&&e.message||e)))}
+// ---------- knightmare cutscene player ----------
+let KMFKO=null;
+const KMF={on:false,raf:0,d:null,t0:0,se:0,cap:-1,shot:-1,fx:[],cb:null,
+  async has(p){return !!p},
+  async play(path,cb){
+    let d;try{d=await load(BASE+'kmf/'+path+'.json')}catch(e){toast('전투 연출 데이터가 없습니다: '+path);cb&&cb();return}
+    if(!KMFKO){try{KMFKO=await load(BASE+'kmf/_ko.json')}catch(e){KMFKO={text:{},spk:{}}}}
+    this.stop(true);this.d=d;this.cb=cb;this.on=true;this.se=0;this.cap=-1;this.shot=-1;this.imgs={};
+    for(const i of d.img)if(i&&!this.imgs[i]){const u=`${BASE}kmf/img/${i}.webp`;const im=new Image();im.src=u;this.imgs[i]=u}
+    // shot boundaries = camera cuts + KMF activation starts
+    const b=new Set([0,...d.shot]);for(const k in d.act)for(const a of d.act[k])b.add(a[0]);
+    this.cuts=[...b].filter(x=>x<d.d).sort((x,y)=>x-y);
+    this.hits=[...d.pp.map(t=>[t,0]),...d.fl.map(t=>[t,1]),...d.cut.map(t=>[t,2])].sort((x,y)=>x[0]-y[0]);this.hi=0;
+    this.sh={t:-9,k:0};this.fl={t:-9,k:0};
+    $('kmf').hidden=false;L2.pause(true);BGM.el.volume=cfg.bgmv*0.45;
+    this.t0=performance.now();const loop=()=>{if(!this.on)return;this.frame();this.raf=requestAnimationFrame(loop)};loop()},
+  active(t){const d=this.d,out=[];for(const k in d.act){if(d.act[k].some(a=>t>=a[0]-0.02&&t<a[0]+a[1]))out.push(+k)}out.sort((x,y)=>x-y);return out},
+  pick(t,n){const d=this.d,img=d.img;let act=this.active(t).filter(i=>img[i]);
+    if(!act.length){const all=[...new Set(img.filter(Boolean))];if(!all.length)return[];return [all[n%all.length]]}
+    const a=img[act[0]];const o=act.map(i=>img[i]).find(x=>x!==a);
+    return o&&(n%3===2)?[a,o]:[act.length>1&&n%2?img[act[n%act.length]]:a]},
+  frame(){
+    const d=this.d,t=(performance.now()-this.t0)/1000;
+    if(t>=d.d+0.3){this.end();return}
+    $('kbar').style.width=(t/d.d*100)+'%';
+    // shots
+    let si=0;while(si+1<this.cuts.length&&this.cuts[si+1]<=t)si++;
+    if(si!==this.shot){this.shot=si;const p=this.pick(this.cuts[si]+0.05,si);
+      const A=$('kiA'),B=$('kiB');
+      if(p[0]){A.style.backgroundImage=`url(${this.imgs[p[0]]})`;A.classList.add('on')}else A.classList.remove('on');
+      if(p[1]){B.style.backgroundImage=`url(${this.imgs[p[1]]})`;B.classList.add('on');A.classList.add('a2')}else{B.classList.remove('on');A.classList.remove('a2')}
+      this.mv={t0:this.cuts[si],t1:this.cuts[si+1]??d.d,k:si%5};
+      if(si>0){this.fl={t,k:0.35}}}
+    // camera move inside shot
+    const m=this.mv,u=Math.min(1,(t-m.t0)/Math.max(.3,m.t1-m.t0));
+    const mv=[[1.08,1.22,0,0,-2,2],[1.25,1.1,-3,3,0,0],[1.15,1.15,4,-4,1,-1],[1.3,1.12,0,0,3,-2],[1.12,1.28,-2,2,-1,1]][m.k];
+    let sc=mv[0]+(mv[1]-mv[0])*u,x=mv[2]+(mv[3]-mv[2])*u,y=mv[4]+(mv[5]-mv[4])*u;
+    // impacts
+    while(this.hi<this.hits.length&&this.hits[this.hi][0]<=t){const h=this.hits[this.hi++];if(h[1]===0)this.sh={t,k:1};else{this.fl={t,k:h[1]===2?1:0.85};this.sh={t,k:.6}}}
+    const se=t-this.sh.t;if(se<0.35){const a=(1-se/0.35)*this.sh.k*2.2;x+=(Math.random()*2-1)*a;y+=(Math.random()*2-1)*a;sc*=1+0.03*(1-se/0.35)*this.sh.k}
+    $('kc').style.transform=`translate(${x}%,${y}%) scale(${sc})`;
+    const fe=t-this.fl.t;$('kf').style.opacity=fe<0.3?String(this.fl.k*(1-fe/0.3)):'0';
+    // sound effects
+    while(this.se<d.se.length&&d.se[this.se][0]<=t){const s=d.se[this.se++];if(cfg.sev&&SND.se.has(s[1])){const a=new Audio(`${BASE}snd/se/${s[1]}.ogg`);a.volume=Math.min(1,cfg.sev*(s[2]||1));a.play().catch(()=>{});SE.pool.set(s[1]+'#'+this.se,a);if(SE.pool.size>16)SE.pool.delete(SE.pool.keys().next().value)}}
+    // captions
+    let ci=-1;for(let i=0;i<d.cap.length;i++){const c=d.cap[i];if(t>=c[0]&&t<c[0]+Math.max(c[1],1.2))ci=i}
+    if(ci!==this.cap){this.cap=ci;const box=$('kcap');
+      if(ci<0)box.classList.remove('on');else{const c=d.cap[ci];const ko=KMFKO.text[c[3]];
+        const n=c[2]==='[HERO_NAME]'?speakerName(c[2]).n:(cfg.lang==='ja'?c[2]:(KMFKO.spk[c[2]]||NAMES[c[2]]||c[2]));
+        $('kcs').textContent=n;
+        if(cfg.lang==='ja'||!ko){$('kct').textContent=fmt(c[3],false);$('kco').textContent=''}
+        else{$('kct').textContent=fmt(ko,true);$('kco').textContent=cfg.lang==='both'?fmt(c[3],false):''}
+        box.classList.add('on')}}
+  },
+  end(){const cb=this.cb;this.stop();cb&&cb()},
+  stop(silent){if(!this.on&&silent)return;this.on=false;cancelAnimationFrame(this.raf);$('kmf').hidden=true;$('kcap').classList.remove('on');$('kf').style.opacity='0';
+    for(const [k,a] of SE.pool)if(k.includes('#')){a.pause();SE.pool.delete(k)}
+    L2.pause(false);BGM.el.volume=cfg.bgmv;this.cb=null}};
+$('kmf').addEventListener('click',e=>{e.stopPropagation();KMF.end()});
 // ---------- audio ----------
 let SND={bgm:new Set(),se:new Set()};
 const BGM={el:new Audio(),cur:null,fade:null,
@@ -476,7 +556,7 @@ const SE={pool:new Map(),
     if(this.pool.size>12)this.pool.delete(this.pool.keys().next().value)}},
   stop(){for(const a of this.pool.values())a.pause();this.pool.clear()}};
 window.addEventListener('resize',()=>{if(!$('reader').hidden&&R.steps[R.i])setChars(R.steps[R.i])});
-document.addEventListener('visibilitychange',()=>{L2.pause(document.hidden);if(document.hidden){BGM.el.pause();SE.stop()}else if(!$('reader').hidden&&BGM.cur&&cfg.bgmv)BGM.el.play().catch(()=>{})});
+document.addEventListener('visibilitychange',()=>{if(document.hidden&&KMF.on)KMF.stop();L2.pause(document.hidden);if(document.hidden){BGM.el.pause();SE.stop()}else if(!$('reader').hidden&&BGM.cur&&cfg.bgmv)BGM.el.play().catch(()=>{})});
 $('rEye').onclick=e=>{e.stopPropagation();$('stage').classList.toggle('hidebox');if(R.steps[R.i])setChars(R.steps[R.i])};
 async function openEp(key,start){
   show('reader');$('loading').hidden=false;$('endc').hidden=true;$('ctitle').hidden=true;$('logSheet').hidden=true;
@@ -509,10 +589,15 @@ function go(i,animate=true){
   else if(st.t==='N'){const t=lineText(st);main=t.main;sub=t.sub;box.classList.add('narr')}
   else if(st.t==='T'){const t=lineText(st);$('ctitle').innerHTML=`<div><small>CHAPTER ${st.num??''}</small><b>${esc(t.main)}</b>${t.sub?`<i>${esc(t.sub)}</i>`:''}</div>`;$('ctitle').hidden=false;main=t.main;box.classList.add('narr')}
   else{box.classList.add('sys');main={knightmareCutScene:'― 나이트메어 전투 연출 ―',captionMovie:'― 자막 영상 ―',movie:'― 영상 ―',empty:'(표시할 대사가 없는 회차입니다)'}[st.kind]||'―'}
+  const kmfOk=st.t==='V'&&st.kind==='knightmareCutScene'&&st.path&&KMFSET.has(st.path);
+  if(KMF.on)KMF.stop();
+  if(kmfOk&&cfg.kmf&&R.fwdV){setTimeout(()=>{if(R.steps[R.i]===st)playKmf(st)},60)}
+  R.fwdV=false;
   $('spk').textContent=spk;$('spk').className='spk'+(hero?' hero':'');
   $('orig').hidden=!sub;$('orig').textContent=sub||'';
   $('meta').textContent=`${R.i+1}/${R.steps.length}`;
-  type(main,animate);
+  type(main,animate&&!kmfOk);
+  if(kmfOk){const b=document.createElement('span');b.className='rp';b.textContent='▶ 전투 연출 보기';b.onclick=e=>{e.stopPropagation();playKmf(st)};$('txt').appendChild(document.createElement('br'));$('txt').appendChild(b)}
   S.set('last',{k:R.key,i:R.i});
 }
 function type(s,animate){
@@ -523,14 +608,15 @@ function type(s,animate){
   R.typing=setInterval(()=>{n+=1;el.textContent=chars.slice(0,n).join('');if(n>=chars.length){clearInterval(R.typing);R.typing=null;doneType()}},cfg.spd);
   R.full=s;
 }
-function doneType(){$('tri').classList.add('on');if(R.auto)R.autoT=setTimeout(next,cfg.gap+($('txt').textContent.length*30))}
+function doneType(){$('tri').classList.add('on');if(R.auto&&!KMF.on)R.autoT=setTimeout(()=>{if(!KMF.on)next()},cfg.gap+($('txt').textContent.length*30))}
 function next(){
   if(!$('logSheet').hidden)return;
   if(R.typing){clearInterval(R.typing);R.typing=null;$('txt').textContent=R.full;doneType();return}
   if(!$('ctitle').hidden&&R.steps[R.i].t!=='T'){$('ctitle').hidden=true;return}
   if(R.i>=R.steps.length-1){finish();return}
-  R.fwd=true;go(R.i+1);
+  R.fwd=true;R.fwdV=true;go(R.i+1);
 }
+function playKmf(st){clearTimeout(R.autoT);KMF.play(st.path,()=>{if(R.auto)R.autoT=setTimeout(next,600)})}
 function finish(){
   clearTimeout(R.autoT);R.auto=false;$('rAuto').classList.remove('on');
   readSet.add(R.key);saveRead();
@@ -540,9 +626,9 @@ function finish(){
   $('endc').hidden=false;
 }
 $('stage').addEventListener('click',e=>{if(e.target.closest('.rtop,.endc,.sheet'))return;if($('stage').classList.contains('hidebox')){$('stage').classList.remove('hidebox');if(R.steps[R.i])setChars(R.steps[R.i]);return}next()});
-$('rPrev').onclick=()=>go(R.i-1,false);
+$('rPrev').onclick=()=>{KMF.stop();go(R.i-1,false)};
 $('rAuto').onclick=()=>{R.auto=!R.auto;$('rAuto').classList.toggle('on',R.auto);if(R.auto&&!R.typing)doneType();else clearTimeout(R.autoT)};
-$('rBack').onclick=()=>{BGM.stop();SE.stop();L2.clear();clearTimeout(R.autoT);R.auto=false;$('rAuto').classList.remove('on');back()};
+$('rBack').onclick=()=>{KMF.stop();BGM.stop();SE.stop();L2.clear();clearTimeout(R.autoT);R.auto=false;$('rAuto').classList.remove('on');back()};
 $('replay').onclick=()=>{$('endc').hidden=true;go(0)};
 $('toList').onclick=()=>$('rBack').onclick();
 $('rLog').onclick=()=>{
@@ -556,6 +642,7 @@ $('logClose').onclick=()=>$('logSheet').hidden=true;
 document.addEventListener('keydown',e=>{if($('reader').hidden)return;if(e.key===' '||e.key==='Enter'||e.key==='ArrowRight'){e.preventDefault();next()}else if(e.key==='ArrowLeft')go(R.i-1,false)});
 // Android back button bridge: MainActivity calls window.lsBack() and expects true if handled
 window.lsBack=function(){
+  if(KMF.on){KMF.end();return true}
   if(!$('logSheet').hidden){$('logSheet').hidden=true;return true}
   if(stack.length>1){if(!$('reader').hidden){$('rBack').onclick()}else back();return true}
   return false;
@@ -571,6 +658,7 @@ window.lsBack=function(){
   try{const l=await load(BASE+'img/list.json');IMG={bg:new Set(l.bg),still:new Set(l.still)}}catch(e){}
   try{const l=await load(BASE+'snd/list.json');SND={bgm:new Set(l.bgm),se:new Set(l.se)}}catch(e){}
   try{CHS=new Set((await load(BASE+'l2d/list.json')).map(String))}catch(e){}
+  try{KMFSET=new Set(await load(BASE+'kmf/list.json'))}catch(e){}
   for(const c of INDEX)for(const g of c.groups)for(const e of g.eps)FLAT.push({k:e[0],el:e[1],g,cat:c,idx:FLAT.length});
   stack.push('home');renderHome();
 })();
