@@ -167,6 +167,7 @@ for cat,label in CATS:
     for gk,g in groups.items():
       c=collections.Counter(s for e in g['eps'] for s in e[3])
       if c: g['title']=kn(c.most_common(1)[0][0])
+      if gk=='512': g['title']='주인공 (의상 인연)'
       g['sub']=f'캐릭터 번호 {gk}'
       if cat=='gacha':
         for i,e in enumerate(g['eps']):

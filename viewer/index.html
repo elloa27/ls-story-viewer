@@ -453,7 +453,7 @@ const L2={app:null,live:new Map(),cache:new Map(),gen:0,talk:null,err:null,
   pause(on){if(this.app){on?this.app.ticker.stop():this.app.ticker.start()}}};
 function charFor(c){
   c=+c;
-  if(Math.floor(c/1000)===512)c=127001;            // hero bonds models missing from game data
+  if(Math.floor(c/1000)===512){const v=c+'_'+(cfg.gender==='f'?'female':'male');if(CHS.has(v))return v;c=127001}   // hero bond outfits: separate male/female models
   if(cfg.gender==='f'&&Math.floor(c/1000)===127){const f=c+1000;if(CHS.has(String(f)))return f}
   return c}
 function toast(msg){let t=$('toast');if(!t){t=document.createElement('div');t.id='toast';t.style.cssText='position:fixed;left:12px;right:12px;top:calc(env(safe-area-inset-top) + 60px);z-index:99;background:#5a1d1d;color:#fff;font-size:12px;padding:8px 10px;border-radius:6px;opacity:.92;pointer-events:none';document.body.appendChild(t)}t.textContent=msg;t.hidden=false;clearTimeout(t._h);t._h=setTimeout(()=>t.hidden=true,6000)}
