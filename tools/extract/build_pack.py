@@ -42,6 +42,15 @@ def compile_file(path):
           if v.get('bgId'): out.append(['B2',v['bgId']]); ssbg.add(v.get('id'))
         elif v.get('delete') and v.get('id') in ssbg: out.append(['B2',None])
         elif v.get('bgId'): out.append(['B',v['bgId']])
+      elif name=='tvMonitor':
+        out.append(['TV',0 if v.get('delete') else 1])
+      elif name in('kmfMonitor','kmfMonitorWorld'):
+        out.append(['KM',None if v.get('delete') else (v.get('type') or 'kmf')])
+      elif name in('geassEyeCutIn','live2dEyeCutIn'):
+        if v.get('charId'):
+          pv=None
+          if isinstance(v.get('paramValue'),list): pv={x['name']:x.get('value',0) for x in v['paramValue'] if isinstance(x,dict) and x.get('name')}
+          out.append(['GE',cid(v['charId']),1 if name=='geassEyeCutIn' else 0,pv])
       elif name=='monitorSecondScreen':
         if v.get('delete') or v.get('close'): out.append(['MS',None])
         elif v.get('open'):
