@@ -1,0 +1,11 @@
+*.apk
+*.keystore
+*.jks
+__pycache__/
+config.json
+settings.json
+batches.json
+data/ep/
+data/img/
+data/l2d/
+data/snd/

@@ -1,0 +1,579 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<title>LS 스토리 뷰어</title>
+<style>
+:root{
+  --bg:#0b0d14; --panel:#141826; --panel2:#1b2033; --line:#2a3048;
+  --ink:#e9e6dc; --dim:#8f93a6; --gold:#c9a45c; --red:#c43a4f;
+  --serif:"Noto Serif CJK JP","Noto Serif CJK KR","Noto Serif JP",serif;
+  --sans:"Noto Sans CJK KR","Noto Sans CJK JP","Noto Sans KR",system-ui,sans-serif;
+  --fs:17px;
+  color-scheme:dark;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);font-family:var(--sans)}
+body{overflow:hidden}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+[hidden]{display:none!important}
+.view{position:absolute;inset:0;display:flex;flex-direction:column;padding-top:env(safe-area-inset-top);padding-bottom:env(safe-area-inset-bottom)}
+.bar{display:flex;align-items:center;gap:8px;padding:12px 14px;border-bottom:1px solid var(--line);background:var(--bg);flex:none}
+.bar h1,.bar h2{margin:0;font-family:var(--serif);font-weight:600;letter-spacing:.04em;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bar h1{font-size:20px}.bar h2{font-size:17px}
+.bar .ib{width:38px;height:38px;border-radius:8px;display:grid;place-items:center;color:var(--dim);font-size:20px;flex:none}
+.bar .ib:active{background:var(--panel2)}
+.scroll{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:14px 14px 40px}
+.eyebrow{font-size:11px;letter-spacing:.18em;color:var(--gold);text-transform:uppercase;margin:18px 2px 8px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:10px}
+.resume{padding:14px 16px;display:flex;gap:12px;align-items:center;width:100%;text-align:left;border-left:3px solid var(--red)}
+.resume .t{flex:1;min-width:0}
+.resume b{display:block;font-family:var(--serif);font-size:16px;margin-bottom:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.resume small{color:var(--dim);font-size:12px}
+.cats{display:grid;gap:8px}
+.cat{display:flex;align-items:center;gap:12px;padding:14px 16px;width:100%;text-align:left}
+.cat .n{flex:1;font-size:16px}
+.cat .c{color:var(--dim);font-size:12px;font-variant-numeric:tabular-nums}
+.cat .pg{width:46px;height:4px;background:var(--line);border-radius:2px;overflow:hidden}
+.cat .pg i{display:block;height:100%;background:var(--gold)}
+.chev{color:var(--dim)}
+.grp{margin-bottom:8px;overflow:hidden}
+.grp>button{display:flex;width:100%;text-align:left;gap:10px;padding:13px 14px;align-items:center}
+.grp .gt{flex:1;min-width:0}
+.grp .gt b{display:block;font-weight:500;font-size:15px}
+.grp .gt small{display:block;color:var(--dim);font-size:12px;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.grp .gc{color:var(--dim);font-size:12px;font-variant-numeric:tabular-nums}
+.eps{border-top:1px solid var(--line)}
+.ep{display:flex;width:100%;text-align:left;padding:11px 14px 11px 18px;gap:10px;align-items:center;border-bottom:1px solid #1d2234}
+.ep:last-child{border-bottom:0}
+.ep .el{flex:1;min-width:0;font-size:14px}
+.ep .el small{color:var(--dim);margin-left:6px;font-size:12px}
+.ep .mk{width:8px;height:8px;border-radius:50%;border:1px solid var(--line);flex:none}
+.ep.read .mk{background:var(--gold);border-color:var(--gold)}
+.ep.cur .mk{background:var(--red);border-color:var(--red)}
+.ep .lc{color:var(--dim);font-size:12px;font-variant-numeric:tabular-nums}
+.ko{font-size:10px;color:var(--gold);border:1px solid #6b5a33;border-radius:3px;padding:0 4px;margin-left:6px}
+/* settings */
+.field{padding:14px 16px;border-bottom:1px solid var(--line);display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+.field:last-child{border-bottom:0}
+.field label{flex:1;min-width:120px;font-size:15px}
+.field label small{display:block;color:var(--dim);font-size:12px;margin-top:2px}
+.field input[type=text]{background:var(--bg);border:1px solid var(--line);border-radius:6px;color:var(--ink);padding:8px 10px;font:inherit;width:160px}
+.seg{display:flex;border:1px solid var(--line);border-radius:7px;overflow:hidden}
+.seg button{padding:7px 12px;font-size:14px;color:var(--dim)}
+.seg button.on{background:var(--gold);color:#16120a;font-weight:700}
+.note{color:var(--dim);font-size:12.5px;line-height:1.6;padding:4px 2px}
+/* reader */
+#reader{background:#000}
+.stage{position:relative;flex:1;overflow:hidden;user-select:none}
+.bgl{position:absolute;inset:0;transition:background 1s ease}
+.bgl::after{content:"";position:absolute;inset:0;background:linear-gradient(transparent 40%,rgba(0,0,0,.75));}
+.bgtag{position:absolute;bottom:calc(env(safe-area-inset-bottom) + 172px);left:14px;font-size:11px;color:rgba(255,255,255,.4);font-family:monospace;letter-spacing:.05em}
+.bgi{position:absolute;inset:0;background-size:cover;background-position:center;opacity:0;transition:opacity .6s ease}
+.bgi.on{opacity:1}
+.ss2{position:absolute;top:0;bottom:0;width:50%;background-size:cover;background-position:center;border-left:2px solid rgba(201,164,92,.7);box-shadow:-6px 0 18px rgba(0,0,0,.6);display:none}
+.ss2.l{border-left:0;border-right:2px solid rgba(201,164,92,.7);box-shadow:6px 0 18px rgba(0,0,0,.6)}
+.ss2.on{display:block}
+.chars{position:absolute;inset:0;pointer-events:none;z-index:0}
+.chr{position:absolute;transition:opacity .35s ease,left .4s ease;opacity:0}
+.chr.on{opacity:1}
+.chr img{position:absolute;display:block}
+.stage.img .bgl::after{background:linear-gradient(transparent 55%,rgba(0,0,0,.55))}
+.still{position:absolute;inset:0;display:grid;place-items:center;background:rgba(0,0,0,.82);padding:calc(env(safe-area-inset-top) + 52px) 0 calc(env(safe-area-inset-bottom) + 178px);z-index:1}
+.still img{max-width:100%;max-height:100%;object-fit:contain;display:block;box-shadow:0 0 30px rgba(0,0,0,.8)}
+.still .ph{color:var(--gold);font-size:12px;letter-spacing:.15em;border:1px solid rgba(201,164,92,.5);border-radius:6px;padding:40px 30px}
+.stage.hidebox .box,.stage.hidebox .rtop>*:not(#rEye),.stage.hidebox .bgtag{opacity:0;pointer-events:none}
+.stage.hidebox .still{padding:0}
+.stage.hidebox .still img{width:100%}
+.rtop{position:absolute;top:0;left:0;right:0;display:flex;align-items:center;gap:6px;padding:calc(env(safe-area-inset-top) + 8px) 10px 8px;background:linear-gradient(rgba(0,0,0,.7),transparent);z-index:5}
+.rtop .ttl{flex:1;min-width:0;font-size:13px;color:#cfccc2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rtop .ib{width:36px;height:36px;border-radius:8px;display:grid;place-items:center;color:#ddd;font-size:18px;background:rgba(0,0,0,.35)}
+.rtop .ib.on{color:var(--gold)}
+.box{position:absolute;left:10px;right:10px;bottom:calc(env(safe-area-inset-bottom) + 12px);min-height:150px;background:rgba(10,12,20,.88);border:1px solid rgba(201,164,92,.35);border-radius:8px;padding:22px 18px 30px;z-index:4}
+.spk{position:absolute;top:-14px;left:14px;background:#10131e;border:1px solid var(--gold);color:var(--gold);font-family:var(--serif);font-size:14px;padding:3px 14px;border-radius:3px;letter-spacing:.06em}
+.spk:empty{display:none}
+.spk.hero{border-color:var(--red);color:#f0a2ad}
+.txt{font-size:var(--fs);line-height:1.75;white-space:pre-wrap;word-break:keep-all;overflow-wrap:anywhere;min-height:3.5em}
+.orig{font-size:calc(var(--fs) - 4px);color:var(--dim);margin-top:6px;line-height:1.6;white-space:pre-wrap}
+.box.narr{background:rgba(0,0,0,.6);border-color:transparent;text-align:center}
+.box.narr .txt{font-family:var(--serif);letter-spacing:.06em}
+.box.sys{border-style:dashed;border-color:#3a4060;text-align:center;color:var(--dim)}
+.box.sys .txt{font-size:14px;min-height:0}
+.meta{position:absolute;left:18px;bottom:8px;font-size:10.5px;color:#5e6378;font-family:monospace}
+.tri{position:absolute;right:14px;bottom:20px;width:9px;height:9px;border-right:2px solid var(--gold);border-bottom:2px solid var(--gold);transform:rotate(45deg);animation:bl 1.1s infinite;opacity:0}
+.tri.on{opacity:1}
+@keyframes bl{50%{opacity:.2}}
+.ctitle{position:absolute;inset:0;display:grid;place-items:center;z-index:6;background:rgba(0,0,0,.85);text-align:center;padding:20px}
+.ctitle small{display:block;color:var(--gold);letter-spacing:.3em;font-size:12px;margin-bottom:14px}
+.ctitle b{font-family:var(--serif);font-size:26px;font-weight:600;letter-spacing:.12em;line-height:1.5}
+.ctitle i{display:block;font-style:normal;color:var(--dim);font-size:15px;margin-top:10px}
+.endc{position:absolute;inset:0;z-index:7;background:rgba(5,6,10,.92);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:24px;text-align:center}
+.endc b{font-family:var(--serif);font-size:22px;letter-spacing:.2em;color:var(--gold)}
+.btn{padding:11px 20px;border-radius:8px;border:1px solid var(--line);background:var(--panel);font-size:15px;min-width:200px}
+.btn.pri{border-color:var(--gold);color:var(--gold)}
+.sheet{position:absolute;inset:0;z-index:9;background:rgba(0,0,0,.6);display:flex;flex-direction:column;justify-content:flex-end}
+.sheet>div{background:var(--panel);border-top:1px solid var(--line);max-height:78%;display:flex;flex-direction:column;border-radius:14px 14px 0 0;padding-bottom:env(safe-area-inset-bottom)}
+.sheet .sh{display:flex;align-items:center;padding:12px 16px;border-bottom:1px solid var(--line)}
+.sheet .sh b{flex:1;font-family:var(--serif)}
+.log{overflow-y:auto;padding:10px 16px 24px}
+.log div{padding:9px 0;border-bottom:1px solid #222840}
+.log span{display:block;font-size:12px;color:var(--gold);margin-bottom:2px}
+.log p{margin:0;font-size:15px;line-height:1.6;white-space:pre-wrap}
+.log div.cur{background:rgba(196,58,79,.08)}
+.loading{position:absolute;inset:0;display:grid;place-items:center;color:var(--dim);z-index:8;background:#000}
+</style>
+</head>
+<body>
+
+<!-- HOME -->
+<section class="view" id="home">
+  <div class="bar"><h1>ロストストーリーズ <span style="color:var(--gold)">∙</span> 스토리</h1><button class="ib" id="toSettings" aria-label="설정">⚙</button></div>
+  <div class="scroll">
+    <div id="resumeWrap" hidden>
+      <div class="eyebrow">이어서 보기</div>
+      <button class="card resume" id="resumeBtn"><div class="t"><b id="resumeT"></b><small id="resumeS"></small></div><span class="chev">›</span></button>
+    </div>
+    <div class="eyebrow">스토리</div>
+    <div class="cats" id="cats"></div>
+    <p class="note" style="margin-top:18px" id="stat"></p>
+  </div>
+</section>
+
+<!-- CATEGORY -->
+<section class="view" id="cat" hidden>
+  <div class="bar"><button class="ib" data-back>‹</button><h2 id="catT"></h2></div>
+  <div class="scroll" id="grps"></div>
+</section>
+
+<!-- SETTINGS -->
+<section class="view" id="settings" hidden>
+  <div class="bar"><button class="ib" data-back>‹</button><h2>설정</h2></div>
+  <div class="scroll">
+    <div class="eyebrow">주인공</div>
+    <div class="card">
+      <div class="field"><label for="heroName">이름<small>대사의 [HERO_NAME] 자리에 들어갑니다</small></label><input id="heroName" type="text" maxlength="12"></div>
+      <div class="field"><label>성별<small>말투와 분기 장면이 바뀝니다</small></label><div class="seg" id="gender"><button data-v="m">남성</button><button data-v="f">여성</button></div></div>
+    </div>
+    <div class="eyebrow">표시</div>
+    <div class="card">
+      <div class="field"><label>언어<small>번역이 있는 대사에 적용됩니다</small></label><div class="seg" id="lang"><button data-v="ko">한국어</button><button data-v="both">병기</button><button data-v="ja">원문</button></div></div>
+      <div class="field"><label>배경음악</label><div class="seg" id="bgmv"><button data-v="0">끔</button><button data-v="0.3">작게</button><button data-v="0.6">보통</button><button data-v="1">크게</button></div></div>
+      <div class="field"><label>효과음</label><div class="seg" id="sev"><button data-v="0">끔</button><button data-v="0.3">작게</button><button data-v="0.6">보통</button><button data-v="1">크게</button></div></div>
+      <div class="field"><label>캐릭터 표시</label><div class="seg" id="chon"><button data-v="1">켜기</button><button data-v="0">끄기</button></div></div>
+      <div class="field"><label>글자 크기</label><div class="seg" id="fsz"><button data-v="15">작게</button><button data-v="17">보통</button><button data-v="20">크게</button></div></div>
+      <div class="field"><label>글자 속도</label><div class="seg" id="spd"><button data-v="0">즉시</button><button data-v="25">빠름</button><button data-v="45">보통</button></div></div>
+      <div class="field"><label>자동 진행 간격</label><div class="seg" id="autoGap"><button data-v="800">짧게</button><button data-v="1500">보통</button><button data-v="2500">길게</button></div></div>
+    </div>
+    <div class="eyebrow">기록</div>
+    <div class="card"><div class="field"><label>읽음 표시 초기화<small>이어보기 위치도 함께 지워집니다</small></label><button class="btn" id="resetRead" style="min-width:0">초기화</button></div></div>
+    <p class="note" style="margin-top:16px">비공식 팬 뷰어입니다. 게임 클라이언트가 내려받은 스토리 데이터를 읽어 표시하며, 캐릭터 일러스트와 배경 이미지는 아직 포함하지 않았습니다.</p>
+  </div>
+</section>
+
+<!-- READER -->
+<section class="view" id="reader" hidden style="padding:0">
+  <div class="stage" id="stage">
+    <div class="bgl" id="bgl"></div><div class="bgi" id="bgi"></div><div class="ss2" id="ss2"></div><div class="chars" id="chars"></div>
+    <div class="bgtag" id="bgtag"></div>
+    <div class="still" id="still" hidden></div>
+    <div class="rtop">
+      <button class="ib" id="rBack" aria-label="목록">‹</button>
+      <div class="ttl" id="rTitle"></div>
+      <button class="ib" id="rPrev" aria-label="이전 대사">↶</button>
+      <button class="ib" id="rEye" aria-label="텍스트 숨기기">◐</button>
+      <button class="ib" id="rAuto" aria-label="자동">▶</button>
+      <button class="ib" id="rLog" aria-label="기록">☰</button>
+    </div>
+    <div class="box" id="box">
+      <div class="spk" id="spk"></div>
+      <div class="txt" id="txt"></div>
+      <div class="orig" id="orig" hidden></div>
+      <div class="tri" id="tri"></div>
+      <div class="meta" id="meta"></div>
+    </div>
+    <div class="ctitle" id="ctitle" hidden></div>
+    <div class="endc" id="endc" hidden>
+      <b>FIN</b>
+      <button class="btn pri" id="nextEp">다음 화</button>
+      <button class="btn" id="replay">처음부터</button>
+      <button class="btn" id="toList">목록으로</button>
+    </div>
+    <div class="sheet" id="logSheet" hidden><div><div class="sh"><b>대사 기록</b><button class="ib" id="logClose">✕</button></div><div class="log" id="log"></div></div></div>
+    <div class="loading" id="loading" hidden>불러오는 중…</div>
+  </div>
+</section>
+
+<script src="lib/live2dcubismcore.min.js"></script>
+<script src="lib/pixi.min.js"></script>
+<script src="lib/cubism4.min.js"></script>
+<script>
+const EXT='file:///storage/emulated/0/Android/data/kr.lsviewer/files/pack/';
+let BASE='data/';
+'use strict';
+// ---------- storage ----------
+const S={get(k,d){try{const v=localStorage.getItem('ls.'+k);return v==null?d:JSON.parse(v)}catch(e){return d}},
+         set(k,v){try{localStorage.setItem('ls.'+k,JSON.stringify(v))}catch(e){}}};
+const cfg=Object.assign({hero:'',gender:'m',lang:'ko',fs:17,spd:25,gap:1500,bgmv:0.6,sev:0.6,chon:1},S.get('cfg',{}));
+const saveCfg=()=>S.set('cfg',cfg);
+let readSet=new Set(S.get('read',[]));
+const saveRead=()=>S.set('read',[...readSet]);
+
+// ---------- loading (XHR works on file:// in Android WebView) ----------
+function load(path){return new Promise((res,rej)=>{const x=new XMLHttpRequest();x.open('GET',path);x.onload=()=>{if(x.status===200||x.status===0&&x.responseText){try{res(JSON.parse(x.responseText))}catch(e){rej(e)}}else rej(new Error(x.status))};x.onerror=()=>rej(new Error('load '+path));x.send()})}
+const epCache=new Map(), koCache=new Map();
+const getEp=k=>epCache.has(k)?Promise.resolve(epCache.get(k)):load('data/ep/'+k+'.json').then(d=>(epCache.set(k,d),d));
+const getKo=k=>koCache.has(k)?Promise.resolve(koCache.get(k)):load('data/ko/'+k+'.json').catch(()=>null).then(d=>(koCache.set(k,d),d));
+let INDEX=[], FLAT=[], NAMES={}, KO_SET=new Set();
+
+// ---------- text helpers ----------
+const heroName=()=>cfg.hero||(cfg.gender==='f'?'主人公':'主人公');
+function fmt(t,isKo){
+  if(t==null)return'';
+  t=t.replace(/\[HERO_NAME\]/g,cfg.hero||(isKo?'주인공':'主人公'));
+  t=t.replace(/%([^%\n]*)%([^%\n]*)%/g,(m,a,b)=>cfg.gender==='f'?b:a);
+  return t;
+}
+function speakerName(s){
+  if(s==='[HERO_NAME]')return{n:cfg.hero||(cfg.lang==='ja'?'主人公':'주인공'),hero:true};
+  if(cfg.lang!=='ja'&&NAMES[s])return{n:NAMES[s],hero:false};
+  return{n:s,hero:false};
+}
+
+// ---------- flatten an episode into display steps ----------
+async function flatten(key){
+  const steps=[]; let bg=null, still=null; let guard=0;
+  let chars=new Map(), ch=[], cam='MC', bgm=null, se=[], talk=null, hs=0, bg2=null;
+  const snap=()=>{ch=[...chars.entries()].map(([id,o])=>Object.assign({id},o))};
+  const mk=(o)=>{o.ch=ch;o.cam=cam;o.bgm=bgm;o.se=se;se=[];o.talk=talk;talk=null;o.hs=hs;o.bg2=bg2;return o};
+  async function runGroup(ep,g,depth){
+    const cmds=ep.groups[g]; if(!cmds||depth>8)return null;
+    for(const c of cmds){
+      if(++guard>40000)return null;
+      switch(c[0]){
+        case'S':steps.push(mk({t:'S',spk:c[1],ja:c[2],k:c[3],v:c[4],src:ep.key,bg,still}));break;
+        case'N':steps.push(mk({t:'N',ja:c[1],k:c[2],src:ep.key,bg,still}));break;
+        case'T':steps.push(mk({t:'T',num:c[1],ja:c[2],k:c[3],src:ep.key,bg,still}));break;
+        case'V':steps.push(mk({t:'V',kind:c[1],bg,still}));break;
+        case'C':{const o=Object.assign({c:null,p:'AOC',m:'m_000',e:'e_000',ss:0,pv:null},chars.get(c[1])||{});if(c[2]){o.c=c[2];o.pv=null}if(c[3])o.p=c[3];if(c[4])o.m=c[4];if(c[5])o.e=c[5];if(c[6]!=null)o.ss=c[6];if(c[7])o.pv=Object.assign({},o.pv||{},c[7]);chars.set(c[1],o);snap();break}
+        case'HS':hs=c[1];if(!hs)bg2=null;break;
+        case'B2':bg2=c[1];break;
+        case'L':talk=c[1];break;
+        case'X':if(chars.delete(c[1]))snap();break;
+        case'K':cam=c[1];break;
+        case'A':bgm=c[1];break;
+        case'E':se=se.concat([c[1]]);break;
+        case'Es':se=se.concat(['-'+c[1]]);break;
+        case'B':bg=c[1];break;
+        case'P':still=c[1];break;
+        case'R':await runGroup(ep,c[1],depth+1);break;
+        case'M':try{const o=await getEp(c[1]);await getKo(c[1]);if(o.groups[c[2]])await runGroup(o,c[2],depth+1)}catch(e){}break;
+        case'G':return c[1];
+        case'H':return cfg.gender==='f'?c[2]:c[1];
+      }
+    }
+    return null;
+  }
+  const ep=await getEp(key); let g=ep.start, hops=0;
+  while(g&&hops++<500){g=await runGroup(ep,g,0)}
+  return steps;
+}
+
+// ---------- views ----------
+const $=id=>document.getElementById(id);
+const stack=[];
+function show(id,push=true){document.querySelectorAll('.view').forEach(v=>v.hidden=v.id!==id);if(push)stack.push(id)}
+function back(){stack.pop();const p=stack[stack.length-1]||'home';show(p,false);if(p==='home')renderHome();if(p==='cat')renderCat(curCat)}
+document.querySelectorAll('[data-back]').forEach(b=>b.onclick=back);
+
+function catProgress(c){let n=0,r=0;for(const g of c.groups)for(const e of g.eps){n++;if(readSet.has(e[0]))r++}return[r,n]}
+function renderHome(){
+  const cats=$('cats');cats.innerHTML='';
+  for(const c of INDEX){
+    const[r,n]=catProgress(c);
+    const b=document.createElement('button');b.className='card cat';
+    b.innerHTML=`<span class="n">${c.title}</span><span class="c">${n}화 · ${c.lines.toLocaleString()}줄</span><span class="pg"><i style="width:${n?r/n*100:0}%"></i></span><span class="chev">›</span>`;
+    b.onclick=()=>{curCat=c;renderCat(c);show('cat')};cats.appendChild(b);
+  }
+  const last=S.get('last',null);
+  $('resumeWrap').hidden=!last;
+  if(last){const e=FLAT.find(x=>x.k===last.k);if(e){$('resumeT').textContent=(e.g.title===e.cat.title?e.cat.title:e.g.title)+' '+e.el;$('resumeS').textContent=(last.i+1)+'번째 대사부터';$('resumeBtn').onclick=()=>openEp(last.k,last.i)}else $('resumeWrap').hidden=true}
+  const tot=INDEX.reduce((a,c)=>a+c.lines,0);
+  $('stat').textContent=`전체 ${FLAT.length.toLocaleString()}화 · 대사 ${tot.toLocaleString()}줄 · 읽은 회차 ${readSet.size.toLocaleString()}`+(KO_SET.size?` · 번역된 회차 ${KO_SET.size.toLocaleString()}`:'');
+}
+let curCat=null, openGroups=new Set(S.get('open',[]));
+function renderCat(c){
+  $('catT').textContent=c.title;
+  const box=$('grps');box.innerHTML='';
+  const last=S.get('last',null);
+  c.groups.forEach((g,gi)=>{
+    const gid=c.id+':'+gi;
+    const read=g.eps.filter(e=>readSet.has(e[0])).length;
+    const d=document.createElement('div');d.className='card grp';
+    const lines=g.eps.reduce((a,e)=>a+e[2],0);
+    d.innerHTML=`<button><span class="gt"><b>${esc(g.title)}</b>${g.sub?`<small>${esc(g.sub)}</small>`:''}</span><span class="gc">${read}/${g.eps.length}</span><span class="chev">${openGroups.has(gid)?'▾':'▸'}</span></button>`;
+    const list=document.createElement('div');list.className='eps';list.hidden=!openGroups.has(gid);
+    if(!list.hidden)fillEps(list,g,last);
+    d.firstChild.onclick=()=>{if(list.hidden){openGroups.add(gid);if(!list.childElementCount)fillEps(list,g,last)}else openGroups.delete(gid);list.hidden=!list.hidden;d.querySelector('.chev').textContent=list.hidden?'▸':'▾';S.set('open',[...openGroups])};
+    d.appendChild(list);box.appendChild(d);
+  });
+}
+function fillEps(list,g,last){
+  for(const e of g.eps){
+    const b=document.createElement('button');
+    b.className='ep'+(readSet.has(e[0])?' read':'')+(last&&last.k===e[0]?' cur':'');
+    const who=e[3]&&e[3].length?`<small>${esc(e[3].map(n=>speakerName(n).n).join(', '))}</small>`:'';
+    b.innerHTML=`<span class="mk"></span><span class="el">${esc(e[1])}${who}${KO_SET.has(e[0])?'<span class="ko">KO</span>':''}</span><span class="lc">${e[2]}</span>`;
+    b.onclick=()=>openEp(e[0],0);list.appendChild(b);
+  }
+}
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+// ---------- settings ----------
+function seg(id,key,num){const el=$(id);const sync=()=>el.querySelectorAll('button').forEach(b=>b.classList.toggle('on',String(cfg[key])===b.dataset.v));el.onclick=e=>{const b=e.target.closest('button');if(!b)return;cfg[key]=num?+b.dataset.v:b.dataset.v;saveCfg();sync();applyCfg()};sync()}
+function applyCfg(){document.documentElement.style.setProperty('--fs',cfg.fs+'px');if(window.BGM)BGM.vol()}
+$('toSettings').onclick=()=>{$('heroName').value=cfg.hero;show('settings')};
+$('heroName').oninput=e=>{cfg.hero=e.target.value.trim();saveCfg()};
+seg('gender','gender');seg('lang','lang');seg('fsz','fs',true);seg('spd','spd',true);seg('autoGap','gap',true);seg('bgmv','bgmv',true);seg('sev','sev',true);seg('chon','chon',true);
+$('resetRead').onclick=()=>{const b=$('resetRead');if(b.dataset.c!=='1'){b.dataset.c='1';b.textContent='한 번 더 누르면 초기화';return}readSet=new Set();saveRead();S.set('last',null);b.dataset.c='';b.textContent='초기화됨'};
+
+// ---------- reader ----------
+let R={key:null,steps:[],i:0,ko:null,typing:null,auto:false,autoT:null,entry:null};
+function bgStyle(id){
+  if(id==null)return'radial-gradient(ellipse at 50% 30%,#1b2033,#05060a)';
+  let h=0;const s=String(id);for(const ch of s)h=(h*31+ch.charCodeAt(0))>>>0;
+  const a=h%360,b=(a+40+(h>>8)%60)%360;
+  return`radial-gradient(ellipse at 30% 25%,hsl(${a} 35% 24%),transparent 60%),radial-gradient(ellipse at 75% 70%,hsl(${b} 30% 16%),transparent 65%),linear-gradient(hsl(${a} 25% 9%),#05060a)`;
+}
+let IMG={bg:new Set(),still:new Set()};const preCache=new Map();
+const bgUrl=id=>id!=null&&IMG.bg.has(String(id))?`${BASE}img/bg/${id}.webp`:null;
+const stUrl=id=>id!=null&&IMG.still.has(String(+id))?`${BASE}img/still/${+id}.webp`:null;
+function preImg(u){if(!u||preCache.has(u))return;const im=new Image();im.src=u;preCache.set(u,im);if(preCache.size>40)preCache.delete(preCache.keys().next().value)}
+let curBg;
+function setBg(id){
+  const u=bgUrl(id);if(u===curBg)return;curBg=u;const el=$('bgi');
+  $('stage').classList.toggle('img',!!u);
+  $('bgtag').textContent=!u&&id!=null?'BG '+id:'';
+  if(!u){el.classList.remove('on');return}
+  const im=new Image();im.onload=()=>{if(curBg!==u)return;el.style.backgroundImage=`url(${u})`;el.classList.add('on')};im.src=u;
+}
+let curSt;
+function setStill(id){
+  const k=id==null?null:String(id);if(k===curSt)return;curSt=k;const el=$('still');
+  el.hidden=id==null;if(id==null){$('stage').classList.remove('hidebox');return}
+  const u=stUrl(id);el.innerHTML=u?`<img src="${u}" alt="">`:`<div class="ph">STILL ${esc(k)}</div>`;
+}
+// ---------- characters (Live2D) ----------
+let CHS=new Set();
+const SLOT={C:.5,'2L':.3,'2R':.7,'3L':.2,'3R':.8,'3C':.5,'4L':.14,'4R':.86};
+function parsePos(p){const r=/^([ALR])O(C|\d[LRC])?/.exec(p||'');if(!r)return null;return{area:r[1],x:SLOT[r[2]||'C']??.5,f:/_F$/.test(p)?2:/_B$/.test(p)?0:1}}
+function loadBuf(path,type){return new Promise((res,rej)=>{const x=new XMLHttpRequest();x.open('GET',path);x.responseType=type||'arraybuffer';x.onload=()=>{if((x.status===200||x.status===0)&&x.response)res(x.response);else rej(new Error(x.status))};x.onerror=()=>rej(new Error('load '+path));x.send()})}
+// textures from the data pack are read via XHR and handed to WebGL as blob images (avoids file:// taint)
+(()=>{const fu=PIXI.Texture.fromURL.bind(PIXI.Texture);PIXI.Texture.fromURL=async(url,opt)=>{
+  if(!/\/l2d\/[^/]+\/[^/]+\.webp$/.test(url))return fu(url,opt);
+  const b=await loadBuf(url,'blob');const u=URL.createObjectURL(b);
+  const img=await new Promise((res,rej)=>{const i=new Image();i.onload=()=>res(i);i.onerror=rej;i.src=u});
+  const t=PIXI.Texture.from(img);t.__blob=u;return t}})();
+const L2={app:null,live:new Map(),cache:new Map(),gen:0,talk:null,err:null,
+  init(){if(this.app)return true;try{
+    const cv=document.createElement('canvas');cv.id='l2d';cv.className='chars';$('chars').replaceWith(cv);
+    PIXI.live2d.config.sound=false;PIXI.live2d.config.motionSync=false;
+    this.app=new PIXI.Application({view:cv,backgroundAlpha:0,antialias:true,resolution:Math.min(2,window.devicePixelRatio||1),autoDensity:true,resizeTo:$('stage')});
+    this.app.ticker.add(()=>this.tick());return true}catch(e){this.err=e;console.warn('l2d init',e);return false}},
+  async model(c){
+    if(this.cache.has(c))return this.cache.get(c);
+    const p=(async()=>{
+      const dir=`${BASE}l2d/${c}/`;const st=await load(dir+'model.model3.json');st.url=dir+'model.model3.json';
+      const blobs=[];
+      const m=await PIXI.live2d.Live2DModel.from(st,{autoInteract:false,motionPreload:'NONE'});
+      m.__blobs=blobs;m.__c=c;
+      const im=m.internalModel,mm=im.motionManager;mm.groups.idle='__none__';
+      const orig=mm.update.bind(mm);
+      mm.update=(core,now)=>{const r=orig(core,now);if(!r&&m.__hold){for(const h of m.__hold){if(h[0])core.setPartOpacityById(h[1],h[2]);else core.setParameterValueById(h[1],h[2])}return true}return r};
+      im.on('beforeModelUpdate',()=>{if(m.__pv){for(const k in m.__pv)im.coreModel.setParameterValueById(k,m.__pv[k])}if(m.__talk){const t=performance.now()/1000;im.coreModel.setParameterValueById('ParamMouthOpenY',Math.abs(Math.sin(t*11))*0.9)}});
+      m.__motJson={};return m})();
+    this.cache.set(c,p);
+    p.catch(()=>this.cache.delete(c));
+    return p},
+  async motion(m,name){
+    const mm=m.internalModel.motionManager;const def=mm.definitions[name];if(!def){return}
+    if(m.__mot===name)return;m.__mot=name;
+    try{let j=m.__motJson[name];if(!j){j=await load(`${BASE}l2d/${m.__c}/`+def[0].File);m.__motJson[name]=j}
+      m.__hold=j.Curves.map(c=>[c.Target==='PartOpacity',c.Id,c.Segments[c.Segments.length-1]]);
+      mm.startMotion(name,0,3)}catch(e){}},
+  async set(st){
+    if(!cfg.chon||!CHS.size){this.clear();return}
+    if(!this.init()){toast('Live2D 초기화 실패: '+(this.err&&this.err.message||this.err));return}
+    const g=++this.gen;const want=new Map();
+    // split "second screen" panel (comm window)
+    const hsOn=!!st.hs&&st.still==null, ssEl=$('ss2');
+    ssEl.className='ss2'+(hsOn?' on':'')+(st.hs===-1?' l':'');ssEl.style[st.hs===-1?'left':'right']='0';ssEl.style[st.hs===-1?'right':'left']='auto';
+    {const u=bgUrl(st.bg2);ssEl.style.backgroundImage=u?`url(${u})`:'';ssEl.style.backgroundColor=u?'':'#0b0d16'}
+    if(st.still==null){const area={MC:'A',L:'L',R:'R'}[st.cam||'MC'];
+      for(const o0 of st.ch||[]){if(!o0.c)continue;const c=charFor(o0.c);if(!CHS.has(String(c)))continue;const p=parsePos(o0.p);if(!p||(p.area!=='A'&&p.area!==area))continue;want.set(o0.id,{o:Object.assign({},o0,{c}),p})}}
+    for(const [id,e] of this.live)if(!want.has(id)||e.c!==want.get(id).o.c){e.out=true}
+    const W=this.app.screen.width,H=this.app.screen.height;
+    const regionOf=o=>{if(!hsOn)return[0,W];const ssRight=st.hs!==-1;const half=W/2;return (o.ss?ssRight:!ssRight)?[half,half]:[0,half]};
+    const cnt={};for(const {o} of want.values()){const r=regionOf(o)[0];cnt[r]=(cnt[r]||0)+1}
+    const bx=$('box'),sr=$('stage').getBoundingClientRect(),br=bx.getBoundingClientRect();
+    const boxTop=(br.height&&!$('stage').classList.contains('hidebox'))?Math.max(H*0.45,br.top-sr.top):H;   // area above the dialog box
+    const sOf=(rw,n)=>Math.min(boxTop*0.97/(8000*0.48),rw*1.3/(520/0.2))*(n>=3?0.74:n===2?0.86:1);
+    for(const [id,{o,p}] of want){
+      let e=this.live.get(id);
+      if(!e||e.out||e.c!==o.c){
+        let m;try{m=await this.model(o.c)}catch(err){toast('캐릭터 '+o.c+' 로드 실패: '+(err&&err.message||err));continue}
+        if(g!==this.gen)return;
+        if(e&&e.m===m){e.out=false}else{
+          if(m.parent)m.parent.removeChild(m);
+          m.alpha=0;this.app.stage.addChild(m);e={m,c:o.c,out:false,x:null};this.live.set(id,e)}
+      }
+      const m=e.m;m.zIndex=p.f+(o.ss&&hsOn?10:0);e.out=false;
+      const [rx,rw]=regionOf(o);const s=sOf(rw,cnt[rx]);
+      m.scale.set(s);m.__pv=o.pv;
+      if(hsOn){if(!m.__mask)m.__mask=new PIXI.Graphics();m.__mask.clear().beginFill(0xffffff).drawRect(rx,0,rw,H).endFill();m.mask=m.__mask}
+      else if(m.mask){m.mask=null;m.__mask&&m.__mask.clear()}
+      const OW=m.internalModel.originalWidth,OH=m.internalModel.originalHeight;e.tx=rx+p.x*rw-OW*s/2; e.ty=boxTop-OH*0.52*s;
+      if(e.x==null){e.x=e.tx;m.position.set(e.tx,e.ty)}
+      this.motion(m,o.m);
+      if(e.exp!==o.e){e.exp=o.e;const em=m.internalModel.motionManager.expressionManager;if(em){if(em.definitions.find(d=>d.Name===o.e))em.setExpression(o.e);else em.resetExpression()}}
+      m.__talk=false;e.talk=(st.talk===id);
+    }
+    this.app.stage.sortableChildren=true;
+  },
+  tick(){
+    for(const [id,e] of this.live){const m=e.m;
+      if(e.out){m.alpha-=0.08;if(m.alpha<=0){if(m.parent)m.parent.removeChild(m);this.live.delete(id)}continue}
+      if(m.alpha<1)m.alpha=Math.min(1,m.alpha+0.08);
+      e.x+=(e.tx-e.x)*0.18;m.position.set(e.x,e.ty);
+      m.__talk=e.talk&&!!R.typing;
+    }
+    if(this.cache.size>14){for(const [c,p] of this.cache){if([...this.live.values()].some(e=>e.c===c))continue;p.then(m=>{if(m.parent)return;m.__blobs.forEach(u=>URL.revokeObjectURL(u));m.destroy({children:true,texture:true,baseTexture:true})}).catch(()=>{});this.cache.delete(c);if(this.cache.size<=10)break}}
+  },
+  clear(){for(const e of this.live.values())e.out=true},
+  pause(on){if(this.app){on?this.app.ticker.stop():this.app.ticker.start()}}};
+function charFor(c){
+  c=+c;
+  if(Math.floor(c/1000)===512)c=127001;            // hero bonds models missing from game data
+  if(cfg.gender==='f'&&Math.floor(c/1000)===127){const f=c+1000;if(CHS.has(String(f)))return f}
+  return c}
+function toast(msg){let t=$('toast');if(!t){t=document.createElement('div');t.id='toast';t.style.cssText='position:fixed;left:12px;right:12px;top:calc(env(safe-area-inset-top) + 60px);z-index:99;background:#5a1d1d;color:#fff;font-size:12px;padding:8px 10px;border-radius:6px;opacity:.92;pointer-events:none';document.body.appendChild(t)}t.textContent=msg;t.hidden=false;clearTimeout(t._h);t._h=setTimeout(()=>t.hidden=true,6000)}
+function setChars(st){L2.set(st).catch(e=>toast('캐릭터 표시 오류: '+(e&&e.message||e)))}
+// ---------- audio ----------
+let SND={bgm:new Set(),se:new Set()};
+const BGM={el:new Audio(),cur:null,fade:null,
+  vol(){this.el.volume=cfg.bgmv;if(!cfg.bgmv)this.el.pause();else if(this.cur&&this.el.paused&&!$('reader').hidden)this.el.play().catch(()=>{})},
+  play(name){if(name&&!SND.bgm.has(name))name=null;if(name===this.cur){if(name&&this.el.paused&&cfg.bgmv)this.el.play().catch(()=>{});return}
+    this.cur=name;const el=this.el;clearInterval(this.fade);
+    if(!name){this.out();return}
+    el.src=`${BASE}snd/bgm/${name}.ogg`;el.loop=true;el.volume=cfg.bgmv;if(cfg.bgmv)el.play().catch(()=>{})},
+  out(){const el=this.el;clearInterval(this.fade);this.fade=setInterval(()=>{el.volume=Math.max(0,el.volume-0.08);if(el.volume<=0){clearInterval(this.fade);el.pause()}},50)},
+  stop(){this.cur=null;clearInterval(this.fade);this.el.pause()}};
+const SE={pool:new Map(),
+  run(list){if(!cfg.sev)return;for(const x of list){
+    if(x[0]==='-'){const a=this.pool.get(x.slice(1).toLowerCase());if(a)a.pause();continue}
+    const k=x.toLowerCase();if(!SND.se.has(k))continue;
+    const a=new Audio(`${BASE}snd/se/${k}.ogg`);a.volume=cfg.sev;a.play().catch(()=>{});this.pool.set(k,a);
+    if(this.pool.size>12)this.pool.delete(this.pool.keys().next().value)}},
+  stop(){for(const a of this.pool.values())a.pause();this.pool.clear()}};
+window.addEventListener('resize',()=>{if(!$('reader').hidden&&R.steps[R.i])setChars(R.steps[R.i])});
+document.addEventListener('visibilitychange',()=>{L2.pause(document.hidden);if(document.hidden){BGM.el.pause();SE.stop()}else if(!$('reader').hidden&&BGM.cur&&cfg.bgmv)BGM.el.play().catch(()=>{})});
+$('rEye').onclick=e=>{e.stopPropagation();$('stage').classList.toggle('hidebox');if(R.steps[R.i])setChars(R.steps[R.i])};
+async function openEp(key,start){
+  show('reader');$('loading').hidden=false;$('endc').hidden=true;$('ctitle').hidden=true;$('logSheet').hidden=true;
+  const entry=FLAT.find(x=>x.k===key);R.entry=entry;
+  $('rTitle').textContent=entry?(entry.g.title===entry.cat.title?`${entry.cat.title} ${entry.el}`:`${entry.g.title} ${entry.el}`):key;
+  try{R.steps=await flatten(key);R.ko=await getKo(key)}catch(e){R.steps=[];console.log(e)}
+  R.key=key;$('loading').hidden=true;
+  if(!R.steps.length){R.steps=[{t:'V',kind:'empty'}]}
+  go(Math.min(start||0,R.steps.length-1),false);
+}
+function lineText(st){
+  const ko=(st.src===R.key?R.ko:koCache.get(st.src))||null;
+  const tr=ko&&st.k!=null?ko[st.k]:null;
+  if(cfg.lang==='ja'||!tr)return{main:fmt(st.ja,false),sub:null};
+  if(cfg.lang==='both')return{main:fmt(tr,true),sub:fmt(st.ja,false)};
+  return{main:fmt(tr,true),sub:null};
+}
+function go(i,animate=true){
+  clearTimeout(R.autoT);
+  R.i=Math.max(0,Math.min(i,R.steps.length-1));
+  const st=R.steps[R.i];
+  $('bgl').style.background=bgStyle(st.bg);
+  setBg(st.bg);setStill(st.still);setChars(st);
+  BGM.play(st.bgm);if(R.fwd&&st.se&&st.se.length)SE.run(st.se);R.fwd=false;
+  for(let j=1;j<=3;j++){const n=R.steps[R.i+j];if(n){preImg(bgUrl(n.bg));preImg(stUrl(n.still))}}
+  const box=$('box');box.className='box';
+  $('ctitle').hidden=true;
+  let main='',sub=null,spk='',hero=false;
+  if(st.t==='S'){const t=lineText(st);main=t.main;sub=t.sub;const n=speakerName(st.spk);spk=n.n;hero=n.hero}
+  else if(st.t==='N'){const t=lineText(st);main=t.main;sub=t.sub;box.classList.add('narr')}
+  else if(st.t==='T'){const t=lineText(st);$('ctitle').innerHTML=`<div><small>CHAPTER ${st.num??''}</small><b>${esc(t.main)}</b>${t.sub?`<i>${esc(t.sub)}</i>`:''}</div>`;$('ctitle').hidden=false;main=t.main;box.classList.add('narr')}
+  else{box.classList.add('sys');main={knightmareCutScene:'― 나이트메어 전투 연출 ―',captionMovie:'― 자막 영상 ―',movie:'― 영상 ―',empty:'(표시할 대사가 없는 회차입니다)'}[st.kind]||'―'}
+  $('spk').textContent=spk;$('spk').className='spk'+(hero?' hero':'');
+  $('orig').hidden=!sub;$('orig').textContent=sub||'';
+  $('meta').textContent=`${R.i+1}/${R.steps.length}`;
+  type(main,animate);
+  S.set('last',{k:R.key,i:R.i});
+}
+function type(s,animate){
+  clearInterval(R.typing);R.typing=null;$('tri').classList.remove('on');
+  const el=$('txt');
+  if(!animate||!cfg.spd){el.textContent=s;doneType();return}
+  let n=0;el.textContent='';const chars=[...s];
+  R.typing=setInterval(()=>{n+=1;el.textContent=chars.slice(0,n).join('');if(n>=chars.length){clearInterval(R.typing);R.typing=null;doneType()}},cfg.spd);
+  R.full=s;
+}
+function doneType(){$('tri').classList.add('on');if(R.auto)R.autoT=setTimeout(next,cfg.gap+($('txt').textContent.length*30))}
+function next(){
+  if(!$('logSheet').hidden)return;
+  if(R.typing){clearInterval(R.typing);R.typing=null;$('txt').textContent=R.full;doneType();return}
+  if(!$('ctitle').hidden&&R.steps[R.i].t!=='T'){$('ctitle').hidden=true;return}
+  if(R.i>=R.steps.length-1){finish();return}
+  R.fwd=true;go(R.i+1);
+}
+function finish(){
+  clearTimeout(R.autoT);R.auto=false;$('rAuto').classList.remove('on');
+  readSet.add(R.key);saveRead();
+  const e=R.entry, nx=e?FLAT[e.idx+1]:null;
+  $('nextEp').hidden=!(nx&&nx.cat===e.cat);
+  if(nx)$('nextEp').onclick=()=>openEp(nx.k,0);
+  $('endc').hidden=false;
+}
+$('stage').addEventListener('click',e=>{if(e.target.closest('.rtop,.endc,.sheet'))return;if($('stage').classList.contains('hidebox')){$('stage').classList.remove('hidebox');if(R.steps[R.i])setChars(R.steps[R.i]);return}next()});
+$('rPrev').onclick=()=>go(R.i-1,false);
+$('rAuto').onclick=()=>{R.auto=!R.auto;$('rAuto').classList.toggle('on',R.auto);if(R.auto&&!R.typing)doneType();else clearTimeout(R.autoT)};
+$('rBack').onclick=()=>{BGM.stop();SE.stop();L2.clear();clearTimeout(R.autoT);R.auto=false;$('rAuto').classList.remove('on');back()};
+$('replay').onclick=()=>{$('endc').hidden=true;go(0)};
+$('toList').onclick=()=>$('rBack').onclick();
+$('rLog').onclick=()=>{
+  const log=$('log');log.innerHTML='';
+  const from=Math.max(0,R.i-300);
+  for(let j=from;j<=R.i;j++){const st=R.steps[j];if(st.t==='V')continue;const t=lineText(st);const d=document.createElement('div');if(j===R.i)d.className='cur';
+    d.innerHTML=`<span>${st.t==='S'?esc(speakerName(st.spk).n):(st.t==='T'?'CHAPTER':'')}</span><p>${esc(t.main)}</p>`;d.onclick=()=>{$('logSheet').hidden=true;go(j,false)};log.appendChild(d)}
+  $('logSheet').hidden=false;requestAnimationFrame(()=>log.scrollTop=log.scrollHeight);
+};
+$('logClose').onclick=()=>$('logSheet').hidden=true;
+document.addEventListener('keydown',e=>{if($('reader').hidden)return;if(e.key===' '||e.key==='Enter'||e.key==='ArrowRight'){e.preventDefault();next()}else if(e.key==='ArrowLeft')go(R.i-1,false)});
+// Android back button bridge: MainActivity calls window.lsBack() and expects true if handled
+window.lsBack=function(){
+  if(!$('logSheet').hidden){$('logSheet').hidden=true;return true}
+  if(stack.length>1){if(!$('reader').hidden){$('rBack').onclick()}else back();return true}
+  return false;
+};
+
+// ---------- boot ----------
+(async function(){
+  applyCfg();
+  try{INDEX=await load('data/index.json')}catch(e){document.body.innerHTML='<p style="padding:20px">data/index.json 을 불러오지 못했습니다.</p>';return}
+  try{NAMES=await load('data/ko/names.json')}catch(e){NAMES={}}
+  try{KO_SET=new Set(await load('data/ko/_list.json'))}catch(e){KO_SET=new Set()}
+  try{await load(EXT+'pack.json');BASE=EXT}catch(e){BASE='data/'}
+  try{const l=await load(BASE+'img/list.json');IMG={bg:new Set(l.bg),still:new Set(l.still)}}catch(e){}
+  try{const l=await load(BASE+'snd/list.json');SND={bgm:new Set(l.bgm),se:new Set(l.se)}}catch(e){}
+  try{CHS=new Set((await load(BASE+'l2d/list.json')).map(String))}catch(e){}
+  for(const c of INDEX)for(const g of c.groups)for(const e of g.eps)FLAT.push({k:e[0],el:e[1],g,cat:c,idx:FLAT.length});
+  stack.push('home');renderHome();
+})();
+</script>
+</body>
+</html>
