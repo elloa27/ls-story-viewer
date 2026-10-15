@@ -413,7 +413,8 @@ const L2={app:null,live:new Map(),cache:new Map(),gen:0,talk:null,err:null,
     ssEl.className='ss2'+(hsOn?' on':'')+(st.hs===-1?' l':'');ssEl.style[st.hs===-1?'left':'right']='0';ssEl.style[st.hs===-1?'right':'left']='auto';
     {const u=bgUrl(st.bg2);ssEl.style.backgroundImage=u?`url(${u})`:'';ssEl.style.backgroundColor=u?'':'#0b0d16'}
     if(st.still==null){const area={MC:'A',L:'L',R:'R'}[st.cam||'MC'];
-      for(const o0 of st.ch||[]){if(!o0.c)continue;const c=charFor(o0.c);if(!CHS.has(String(c)))continue;const p=parsePos(o0.p);if(!p||(p.area!=='A'&&p.area!==area))continue;want.set(o0.id,{o:Object.assign({},o0,{c}),p})}}
+      const ssVis=!!st.hs||!!st.mon;for(const o0 of st.ch||[]){if(!o0.c)continue;if(o0.ss&&!ssVis)continue;   // second-screen characters are only visible through a split screen or monitor
+      const c=charFor(o0.c);if(!CHS.has(String(c)))continue;const p=parsePos(o0.p);if(!p||(p.area!=='A'&&p.area!==area))continue;want.set(o0.id,{o:Object.assign({},o0,{c}),p})}}
     for(const [id,e] of this.live)if(!want.has(id)||e.c!==want.get(id).o.c){e.out=true}
     const W=this.app.screen.width,H=this.app.screen.height;
     // small monitor window (comm screen) for second-screen characters
