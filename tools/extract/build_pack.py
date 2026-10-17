@@ -61,7 +61,7 @@ def compile_file(path):
         elif 'isRight' in v or v.get('pos'): out.append(['HS',1 if v.get('isRight',True) else -1])
       elif name=='still':
         if v.get('delete'): out.append(['P',None])
-        elif v.get('stillId'): out.append(['P',v['stillId']])
+        elif v.get('stillId'): out.append(['P',v['stillId'],1] if v.get('heroGender') else ['P',v['stillId']])   # heroGender: female version is stillId+1
       elif name=='goTo':
         if 'goTo' in v: out.append(['G',v['goTo']])
         elif 'heroFlag' in v: out.append(['H',v['heroFlag']['goToMale'],v['heroFlag']['goToFemale']])

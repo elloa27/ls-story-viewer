@@ -283,7 +283,7 @@ async function flatten(key){
         case'E':se=se.concat([c[1]]);break;
         case'Es':se=se.concat(['-'+c[1]]);break;
         case'B':bg=c[1];break;
-        case'P':still=c[1];break;
+        case'P':still=(c[1]!=null&&c[2]&&cfg.gender==='f'&&IMG.still.has(String(+c[1]+1)))?+c[1]+1:c[1];break;
         case'R':await runGroup(ep,c[1],depth+1);break;
         case'M':try{const o=await getEp(c[1]);await getKo(c[1]);if(o.groups[c[2]])await runGroup(o,c[2],depth+1)}catch(e){}break;
         case'G':return c[1];
