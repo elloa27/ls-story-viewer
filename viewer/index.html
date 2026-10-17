@@ -497,6 +497,7 @@ const L2={app:null,live:new Map(),cache:new Map(),gen:0,talk:null,err:null,
       if(e.exp!==o.e){e.exp=o.e;const em=m.internalModel.motionManager.expressionManager;if(em){if(em.definitions.find(d=>d.Name===o.e))em.setExpression(o.e);else em.resetExpression()}}
       m.__talk=false;e.talk=(st.talk===id);
     }
+    {const ms=new Set([...this.live.values()].map(e=>e.m));for(const a of [this.app,this.app2])for(const ch of [...a.stage.children])if(!ms.has(ch))a.stage.removeChild(ch)}   // models no longer tracked
     this.app.stage.sortableChildren=true;
   },
   tick(){
@@ -525,6 +526,9 @@ const L2={app:null,live:new Map(),cache:new Map(),gen:0,talk:null,err:null,
       const a=t<0.2?t/0.2:(t>1.7?Math.max(0,1-(t-1.7)/0.3):1);m.alpha=bg.alpha=a;m.position.x=x0+W*0.05*(1-Math.min(1,t/2));
       if(t>2){clearInterval(this.__ci);A.stage.removeChildren();this.cv3.style.clipPath='inset(0 0 100% 0)'}},16)},
   clear(){for(const e of this.live.values())e.out=true},
+  reset(){   // drop every model at once (new episode): nothing from the previous scene may linger
+    this.gen++;clearInterval(this.__ci);for(const e of this.live.values())if(e.m.parent)e.m.parent.removeChild(e.m);this.live.clear();
+    for(const a of [this.app,this.app2,this.app3])if(a)a.stage.removeChildren();if(this.cv3)this.cv3.style.clipPath='inset(0 0 100% 0)'},
   pause(on){for(const a of [this.app,this.app2,this.app3])if(a){on?a.ticker.stop():a.ticker.start()}}};
 // eye line of a model as a fraction of its canvas height: find the meshes that move when the eyes close
 function eyeY(m){if(m.__eye!=null)return m.__eye;let f=0.2;try{
@@ -563,7 +567,7 @@ window.addEventListener('resize',()=>{layout();if(!$('reader').hidden&&R.steps[R
 document.addEventListener('visibilitychange',()=>{L2.pause(document.hidden);if(document.hidden){BGM.el.pause();SE.stop()}else if(!$('reader').hidden&&BGM.cur&&cfg.bgmv)BGM.el.play().catch(()=>{})});
 $('rEye').onclick=e=>{e.stopPropagation();$('stage').classList.toggle('hidebox');if(R.steps[R.i])setChars(R.steps[R.i])};
 async function openEp(key,start){
-  show('reader');layout();$('loading').hidden=false;$('endc').hidden=true;$('ctitle').hidden=true;$('logSheet').hidden=true;
+  show('reader');layout();if(L2.app)L2.reset();$('loading').hidden=false;$('endc').hidden=true;$('ctitle').hidden=true;$('logSheet').hidden=true;
   const entry=FLAT.find(x=>x.k===key);R.entry=entry;
   $('rTitle').textContent=entry?(entry.g.title===entry.cat.title?`${entry.cat.title} ${entry.el}`:`${entry.g.title} ${entry.el}`):key;
   try{R.steps=await flatten(key);R.ko=await getKo(key)}catch(e){R.steps=[];console.log(e)}

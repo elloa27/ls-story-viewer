@@ -15,6 +15,13 @@ def cid(x):
 def compile_file(path):
   j=json.load(open(path,encoding='utf-8'))
   k=0; groups={}; first=None; ssbg=set()
+  bgmap={}; bgcur={}; hasshow=False
+  for _g,_cmds in j.items():
+    for _c in _cmds or []:
+      if _c and 'advBgOperator' in _c and isinstance(_c['advBgOperator'],dict):
+        _v=_c['advBgOperator']
+        for a in _v.get('add') or []: bgmap[(_v.get('id','bg'),str(a.get('id')))]=a.get('bgId')
+        if 'show' in _v or 'crossFade' in _v: hasshow=True
   for g,cmds in j.items():
     if first is None: first=g
     out=[]
@@ -35,8 +42,15 @@ def compile_file(path):
       elif name in('chapterTitle','lostPlusOneChapterTitle'):
         if v.get('text'): out.append(['T',v.get('chapterNum'),v['text'],k]); k+=1
       elif name=='advBgOperator':
-        b=bg_of(v)
-        if b: out.append(['B',b[-1]])
+        # a set of backgrounds is registered with 'add'; 'show'/'crossFade' picks one, 'hide' clears it
+        op=v.get('id','bg')
+        sid=(v.get('show') or {}).get('id') or (v.get('crossFade') or {}).get('showId')
+        hid=(v.get('hide') or {}).get('id')
+        if hid is not None and bgcur.get(op)==str(hid) and sid is None: out.append(['B',None]); bgcur[op]=None
+        if sid is not None and (op,str(sid)) in bgmap: out.append(['B',bgmap[(op,str(sid))]]); bgcur[op]=str(sid)
+        elif 'add' in v and not hasshow:
+          b=bg_of(v)
+          if b: out.append(['B',b[0]])
       elif name=='advBg':
         if v.get('renderSecondScreen'):
           if v.get('bgId'): out.append(['B2',v['bgId']]); ssbg.add(v.get('id'))
